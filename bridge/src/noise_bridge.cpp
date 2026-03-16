@@ -2,6 +2,8 @@
 #include "noise/engine.h"
 #include "noise/shared_ring_buffer.h"
 #include <memory>
+#include <vector>
+#include <cstdio>
 
 // Context struct that holds both the Engine and shared memory buffer
 struct NoiseEngineContext {
@@ -78,6 +80,58 @@ int noise_engine_get_status(NoiseEngineHandle handle)
     if (!handle) return 0;
     auto* ctx = static_cast<NoiseEngineContext*>(handle);
     return static_cast<int>(ctx->engine.get_status());
+}
+
+int noise_engine_process_and_write(NoiseEngineHandle handle, const float* input, uint32_t num_frames)
+{
+    if (!handle) return 0;
+    auto* ctx = static_cast<NoiseEngineContext*>(handle);
+    if (!ctx->shared_buffer || !ctx->shared_buffer->is_valid()) {
+        // Log once if shared buffer is missing
+        static bool logged_no_shm = false;
+        if (!logged_no_shm) {
+            fprintf(stderr, "[NoiseAI-Bridge] process_and_write: shared buffer not valid\n");
+            logged_no_shm = true;
+        }
+        return 0;
+    }
+
+    const uint32_t channels = 2;
+    const uint32_t total_samples = num_frames * channels;
+
+    // Allocate a temporary buffer for denoised output.
+    // For real-time safety this could be pre-allocated, but the engine's
+    // internal buffering already handles the heavy lifting.
+    // Use a thread-local buffer to avoid per-call allocations.
+    thread_local std::vector<float> output_buf;
+    if (output_buf.size() < total_samples) {
+        output_buf.resize(total_samples);
+    }
+
+    // Process through RNNoise
+    if (!ctx->engine.process_frame(input, output_buf.data(), num_frames)) {
+        static bool logged_process_fail = false;
+        if (!logged_process_fail) {
+            fprintf(stderr, "[NoiseAI-Bridge] process_and_write: process_frame returned false "
+                    "(engine status=%d)\n",
+                    static_cast<int>(ctx->engine.get_status()));
+            logged_process_fail = true;
+        }
+        return 0;
+    }
+
+    // Write denoised audio to shared memory
+    bool write_ok = ctx->shared_buffer->write(output_buf.data(), total_samples);
+
+    // Log first successful write
+    static bool logged_first_write = false;
+    if (!logged_first_write && write_ok) {
+        fprintf(stderr, "[NoiseAI-Bridge] process_and_write: first successful write "
+                "(%u frames, %u samples)\n", num_frames, total_samples);
+        logged_first_write = true;
+    }
+
+    return write_ok ? 1 : 0;
 }
 
 // Shared memory functions

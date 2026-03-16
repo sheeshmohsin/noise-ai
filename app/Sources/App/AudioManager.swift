@@ -77,17 +77,16 @@ private func auhalInputCallback(
         return status
     }
 
-    // Write captured audio to the shared memory ring buffer
-    let totalSamples = framesToRender * channels
+    // Process captured audio through RNNoise and write to shared memory
     if let handle = ctx.engineHandle {
-        let result = noise_shm_write(handle, captureBuffer, totalSamples)
+        let result = noise_engine_process_and_write(handle, captureBuffer, framesToRender)
         // Log first write result (once) for diagnostics
         struct WriteLog {
             static var logged = false
         }
         if !WriteLog.logged {
             WriteLog.logged = true
-            print("[NoiseAI] First shm_write: \(totalSamples) samples, result=\(result)")
+            print("[NoiseAI] First process_and_write: \(framesToRender) frames, result=\(result)")
         }
     }
 

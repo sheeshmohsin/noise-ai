@@ -17,6 +17,11 @@ void noise_engine_set_mode(NoiseEngineHandle handle, int mode);  // 0=CpuSaver, 
 int noise_engine_get_mode(NoiseEngineHandle handle);
 int noise_engine_get_status(NoiseEngineHandle handle);  // 0=Stopped, 1=Running, 2=Error
 
+// Process audio through RNNoise and write denoised output to shared memory.
+// input: interleaved stereo float32 audio
+// num_frames: number of frames (each frame = 2 samples for stereo)
+int noise_engine_process_and_write(NoiseEngineHandle handle, const float* input, uint32_t num_frames);
+
 // Shared memory ring buffer for IPC between app and driver
 int noise_shm_create(NoiseEngineHandle handle, uint32_t sample_rate, uint32_t channels);
 void noise_shm_destroy(NoiseEngineHandle handle);

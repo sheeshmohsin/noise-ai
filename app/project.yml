@@ -17,9 +17,11 @@ settings:
     LIBRARY_SEARCH_PATHS:
       - "$(PROJECT_DIR)/../build/bridge"
       - "$(PROJECT_DIR)/../build/engine"
+      - "$(PROJECT_DIR)/../build/third_party"
     OTHER_LDFLAGS:
       - "-lnoisebridge"
       - "-lnoiseengine"
+      - "-lrnnoise"
       - "-lc++"
 
 targets:

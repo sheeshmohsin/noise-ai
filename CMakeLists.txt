@@ -24,6 +24,7 @@ include(utils)
 
 enable_testing()
 
+add_subdirectory(third_party)
 add_subdirectory(engine)
 add_subdirectory(bridge)
 add_subdirectory(driver)

@@ -13,6 +13,10 @@ target_include_directories(noiseengine
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+target_link_libraries(noiseengine
+    PUBLIC rnnoise
+)
+
 noise_set_compile_options(noiseengine)
 
 # Tests
