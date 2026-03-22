@@ -38,8 +38,6 @@ struct MenuBarView: View {
                     } else {
                         audioManager.stop()
                     }
-                    // Update status bar icon
-                    updateStatusBarIcon(active: newValue)
                 }
 
             // Mode picker
@@ -120,11 +118,5 @@ struct MenuBarView: View {
         }
         .padding(16)
         .frame(width: 300)
-    }
-
-    private func updateStatusBarIcon(active: Bool) {
-        if let appDelegate = NSApp.delegate as? AppDelegate {
-            appDelegate.updateStatusIcon(isActive: active)
-        }
     }
 }

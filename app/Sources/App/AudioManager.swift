@@ -108,9 +108,14 @@ private func auhalInputCallback(
 
 @Observable
 class AudioManager {
-    var isProcessing = false
+    var isProcessing = false {
+        didSet { onProcessingChanged?(isProcessing) }
+    }
     var currentMode: NoiseMode = .balanced
     var engineStatus: EngineStatus = .stopped
+
+    /// Called whenever `isProcessing` changes; set by AppDelegate to update the status icon.
+    var onProcessingChanged: ((Bool) -> Void)?
 
     /// The AudioObjectID of the device currently being captured, or nil if using system default
     private(set) var currentDeviceID: AudioObjectID?
@@ -132,6 +137,23 @@ class AudioManager {
 
     init() {
         engineHandle = noise_engine_create(48000, 2, 128)
+        loadBundledModel()
+    }
+
+    /// Load the DeepFilterNet model from the app bundle's Resources/Models directory.
+    private func loadBundledModel() {
+        guard let handle = engineHandle else { return }
+
+        if let modelPath = Bundle.main.path(forResource: "deepfilternet", ofType: "onnx", inDirectory: "Models") {
+            let result = noise_engine_load_deepfilter_model(handle, modelPath)
+            if result != 0 {
+                print("[NoiseAI] Loaded DeepFilterNet model from bundle: \(modelPath)")
+            } else {
+                print("[NoiseAI] Failed to load DeepFilterNet model from bundle: \(modelPath)")
+            }
+        } else {
+            print("[NoiseAI] DeepFilterNet model not found in app bundle (will use search paths)")
+        }
     }
 
     deinit {

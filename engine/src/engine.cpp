@@ -45,11 +45,12 @@ static std::string find_model_path()
     // Candidate paths in priority order
     std::vector<std::string> candidates;
     if (!exe_dir.empty()) {
+        // App bundle Resources/Models/ (primary path for installed app)
+        candidates.push_back(exe_dir + "/../Resources/Models/deepfilternet.onnx");
         candidates.push_back(exe_dir + "/../models/deepfilternet.onnx");
         candidates.push_back(exe_dir + "/models/deepfilternet.onnx");
     }
     candidates.push_back("./models/deepfilternet.onnx");
-    candidates.push_back("/Users/sheeshmohsin/Codes/noise-ai/models/deepfilternet.onnx");
 
     for (const auto& path : candidates) {
         FILE* f = fopen(path.c_str(), "rb");
@@ -86,6 +87,37 @@ void Engine::load_deepfilter_model()
             apply_attenuation_for_mode(mode_);
         }
     }
+}
+
+bool Engine::load_deepfilter_model(const std::string& model_path)
+{
+    if (model_path.empty()) {
+        fprintf(stderr, "[NoiseAI-Engine] load_deepfilter_model: empty path\n");
+        return false;
+    }
+
+    // Verify the file exists
+    FILE* f = fopen(model_path.c_str(), "rb");
+    if (!f) {
+        fprintf(stderr, "[NoiseAI-Engine] load_deepfilter_model: file not found: %s\n",
+                model_path.c_str());
+        return false;
+    }
+    fclose(f);
+
+    if (!deepfilter_) {
+        deepfilter_ = std::make_unique<DeepFilterEngine>();
+    }
+
+    if (!deepfilter_->load(model_path)) {
+        fprintf(stderr, "[NoiseAI-Engine] WARNING: Failed to load DeepFilterNet model from: %s\n",
+                model_path.c_str());
+        return false;
+    }
+
+    fprintf(stderr, "[NoiseAI-Engine] Loaded DeepFilterNet model from: %s\n", model_path.c_str());
+    apply_attenuation_for_mode(mode_);
+    return true;
 }
 
 void Engine::apply_attenuation_for_mode(NoiseMode mode)

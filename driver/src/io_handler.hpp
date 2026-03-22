@@ -44,4 +44,11 @@ private:
     // Tracks whether we ever connected during this IO session.
     // Used to pick fast vs slow retry throttle in ensureConnected().
     bool was_ever_connected_ = false;
+
+    // Heartbeat-based stale producer detection.
+    // If the heartbeat hasn't changed for kStaleThreshold consecutive callbacks,
+    // the producer is presumed dead and we disconnect to allow reconnection.
+    uint64_t last_heartbeat_ = 0;
+    int stale_count_ = 0;
+    static constexpr int kStaleThreshold = 50;  // ~500ms at 48kHz/512-frame callbacks
 };

@@ -1,0 +1,8 @@
+#!/bin/bash
+# Post-install script for the NoiseAI driver component.
+# Restart coreaudiod so macOS picks up the newly installed HAL driver.
+# launchd will automatically restart the daemon after we kill it.
+
+killall -9 coreaudiod 2>/dev/null || true
+
+exit 0

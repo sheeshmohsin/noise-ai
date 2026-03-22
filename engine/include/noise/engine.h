@@ -38,13 +38,17 @@ public:
     void set_attenuation_limit(float db);
     float get_attenuation_limit() const;
 
+    /// Load the DeepFilterNet ONNX model from an explicit file path.
+    /// Returns true on success, false if the file is missing or loading fails.
+    bool load_deepfilter_model(const std::string& model_path);
+
 private:
     /// Process a single 480-sample mono frame through the active denoiser.
     /// rnn_input is in RNNoise int16-scaled format for CpuSaver mode,
     /// or raw float [-1,1] for DeepFilterNet modes.
     void process_mono_chunk();
 
-    /// Try to find and load the DeepFilterNet ONNX model.
+    /// Try to find and load the DeepFilterNet ONNX model from default search paths.
     void load_deepfilter_model();
 
     /// Apply the appropriate DeepFilterNet attenuation limit for the given mode.

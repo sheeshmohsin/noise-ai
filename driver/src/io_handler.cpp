@@ -10,16 +10,22 @@ IOHandler::~IOHandler() = default;
 
 OSStatus IOHandler::OnStartIO() {
     fprintf(stderr, "[NoiseAI-Driver] OnStartIO called\n");
-    // Try to connect to shared memory on start
+    // Always disconnect first to ensure we get a fresh shared memory mapping.
+    // This handles the case where the app was restarted while IO was still active.
+    shared_buffer_.reset();
+    was_connected_ = false;
+    was_underrun_ = false;
+    was_ever_connected_ = false;
+    reconnect_countdown_ = 0;
+    last_heartbeat_ = 0;
+    stale_count_ = 0;
+
+    // Try to connect to the (possibly new) shared memory segment
     if (ensureConnected()) {
         fprintf(stderr, "[NoiseAI-Driver] Connected to shared memory on start\n");
     } else {
         fprintf(stderr, "[NoiseAI-Driver] Shared memory not available on start (will retry on each read)\n");
     }
-    was_connected_ = false;
-    was_underrun_ = false;
-    was_ever_connected_ = false;
-    reconnect_countdown_ = 0;
     return kAudioHardwareNoError;
 }
 
@@ -30,6 +36,8 @@ void IOHandler::OnStopIO() {
     was_connected_ = false;
     was_underrun_ = false;
     reconnect_countdown_ = 0;
+    last_heartbeat_ = 0;
+    stale_count_ = 0;
 }
 
 bool IOHandler::ensureConnected() {
@@ -107,10 +115,41 @@ void IOHandler::OnReadClientInput(
         was_underrun_ = false;
     }
 
-    // Check if the producer is still active
+    // Check if the producer is still active.
+    // If the producer has set active=0 (clean shutdown) or the heartbeat
+    // has gone stale (crash / app restarted), disconnect so that
+    // ensureConnected() will pick up a new shared memory segment.
     if (!shared_buffer_->is_active()) {
+        fprintf(stderr, "[NoiseAI-Driver] Producer inactive, disconnecting to allow reconnect\n");
+        shared_buffer_.reset();
+        was_connected_ = false;
+        last_heartbeat_ = 0;
+        stale_count_ = 0;
         std::memset(output, 0, bytesCount);
         return;
+    }
+
+    // Heartbeat-based stale detection: if the heartbeat counter hasn't
+    // advanced for kStaleThreshold consecutive callbacks, the producer
+    // is presumed dead (e.g. crashed without setting active=0).
+    {
+        const uint64_t hb = shared_buffer_->get_heartbeat();
+        if (hb == last_heartbeat_) {
+            ++stale_count_;
+            if (stale_count_ >= kStaleThreshold) {
+                fprintf(stderr, "[NoiseAI-Driver] Heartbeat stale for %d callbacks, "
+                        "disconnecting to allow reconnect\n", stale_count_);
+                shared_buffer_.reset();
+                was_connected_ = false;
+                last_heartbeat_ = 0;
+                stale_count_ = 0;
+                std::memset(output, 0, bytesCount);
+                return;
+            }
+        } else {
+            last_heartbeat_ = hb;
+            stale_count_ = 0;
+        }
     }
 
     // Try to read from the shared ring buffer

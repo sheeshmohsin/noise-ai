@@ -35,7 +35,19 @@ targets:
         excludes:
           - "**/*.md"
     resources:
-      - path: Resources
+      - path: Resources/Assets.xcassets
+      - path: Resources/Models
+        buildPhase: resources
+        type: folder
+    postBuildScripts:
+      - name: "Bundle DeepFilterNet Model"
+        script: |
+          mkdir -p "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Models"
+          cp "${PROJECT_DIR}/Resources/Models/deepfilternet.onnx" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Models/deepfilternet.onnx"
+        inputFiles:
+          - $(PROJECT_DIR)/Resources/Models/deepfilternet.onnx
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Models/deepfilternet.onnx
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.noiseai.app

@@ -86,6 +86,7 @@ SharedRingBuffer::SharedRingBuffer(const char* name, size_t capacity,
         header_->channels = channels;
         header_->sample_rate = sample_rate;
         header_->active = 1;
+        new (&header_->heartbeat) std::atomic<uint64_t>(0);
         fprintf(stderr, "[NoiseAI-SHM] Producer: header initialized (cap=%u, ch=%u, sr=%u, active=1)\n",
                 header_->capacity, header_->channels, header_->sample_rate);
     } else {
@@ -154,6 +155,7 @@ bool SharedRingBuffer::write(const float* data, size_t num_samples)
     }
 
     header_->write_pos.store(w + num_samples, std::memory_order_release);
+    header_->heartbeat.fetch_add(1, std::memory_order_release);
     return true;
 }
 
@@ -219,6 +221,12 @@ void SharedRingBuffer::set_active(bool active)
     if (header_) {
         header_->active = active ? 1 : 0;
     }
+}
+
+uint64_t SharedRingBuffer::get_heartbeat() const
+{
+    if (!header_) return 0;
+    return header_->heartbeat.load(std::memory_order_acquire);
 }
 
 } // namespace noise

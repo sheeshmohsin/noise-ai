@@ -15,6 +15,7 @@ struct SharedRingBufferHeader {
     uint32_t channels;
     uint32_t sample_rate;
     uint32_t active;         // 1 if producer is active, 0 if not
+    alignas(64) std::atomic<uint64_t> heartbeat;  // incremented by producer on every write
 };
 
 class SharedRingBuffer {
@@ -50,6 +51,10 @@ public:
 
     bool is_active() const;
     void set_active(bool active);
+
+    // Returns the current heartbeat counter (incremented on every write).
+    // Used by the consumer to detect a stale/dead producer.
+    uint64_t get_heartbeat() const;
 
     bool is_valid() const { return shm_ptr_ != nullptr; }
 

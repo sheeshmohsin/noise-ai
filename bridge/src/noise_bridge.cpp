@@ -2,6 +2,7 @@
 #include "noise/engine.h"
 #include "noise/shared_ring_buffer.h"
 #include <memory>
+#include <string>
 #include <vector>
 #include <cstdio>
 
@@ -116,6 +117,14 @@ int noise_engine_is_overloaded(NoiseEngineHandle handle)
     auto* ctx = static_cast<NoiseEngineContext*>(handle);
     return ctx->engine.is_overloaded() ? 1 : 0;
 }
+
+int noise_engine_load_deepfilter_model(NoiseEngineHandle handle, const char* model_path)
+{
+    if (!handle || !model_path) return 0;
+    auto* ctx = static_cast<NoiseEngineContext*>(handle);
+    return ctx->engine.load_deepfilter_model(std::string(model_path)) ? 1 : 0;
+}
+
 
 int noise_engine_process_and_write(NoiseEngineHandle handle, const float* input, uint32_t num_frames)
 {

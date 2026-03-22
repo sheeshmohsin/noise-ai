@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+    <title>NoiseAI</title>
+    <welcome file="welcome.html"/>
+    <conclusion file="conclusion.html"/>
+    <options customize="never" require-scripts="false" hostArchitectures="arm64,x86_64"/>
+    <volume-check>
+        <allowed-os-versions>
+            <os-version min="14.0"/>
+        </allowed-os-versions>
+    </volume-check>
+    <choices-outline>
+        <line choice="app"/>
+        <line choice="driver"/>
+    </choices-outline>
+    <choice id="app" title="NoiseAI Application" enabled="true" selected="true">
+        <pkg-ref id="com.noiseai.app"/>
+    </choice>
+    <choice id="driver" title="NoiseAI Audio Driver" enabled="true" selected="true">
+        <pkg-ref id="com.noiseai.driver"/>
+    </choice>
+    <pkg-ref id="com.noiseai.app" version="0.1.0">NoiseAI-app.pkg</pkg-ref>
+    <pkg-ref id="com.noiseai.driver" version="0.1.0">NoiseAI-driver.pkg</pkg-ref>
+</installer-gui-script>

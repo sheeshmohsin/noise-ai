@@ -29,6 +29,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             audioManager.setMode(mode)
         }
 
+        // Update status icon whenever processing state changes
+        audioManager.onProcessingChanged = { [weak self] isActive in
+            self?.updateStatusIcon(isActive: isActive)
+        }
+
         // Create status bar item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
