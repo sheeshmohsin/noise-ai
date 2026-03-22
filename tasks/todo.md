@@ -229,8 +229,8 @@ Physical Mic (48kHz)
 - [x] Implement dry/wet mix post-processing for voice preservation (configurable per mode)
 - [x] Expose dry_mix and attenuation_limit as configurable parameters via bridge API
 - [x] Handle stereo↔mono conversion, int16 scaling (RNNoise), frame buffering (480-sample chunks)
-- [ ] Add processing thread joined to audio workgroup (`os_workgroup_join`)
-- [ ] Implement overload handling: detect if inference takes too long, fallback to passthrough
+- [x] Audio workgroup: processing runs on AUHAL callback thread (already in workgroup by design)
+- [x] Implement overload handling: detect if inference takes >8ms, fallback to passthrough after 5 consecutive overloads
 - [x] Verify: background noise is removed, voice sounds natural, latency is imperceptible
 
 ### Milestone 5: macOS App UI

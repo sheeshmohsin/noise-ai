@@ -1,5 +1,6 @@
 #include "noise/engine.h"
 #include "noise/deepfilter.h"
+#include <chrono>
 #include <cstring>
 #include <algorithm>
 #include <cstdio>
@@ -149,6 +150,11 @@ bool Engine::init(const AudioFormat& format)
 
     debug_frame_count_ = 0;
 
+    // Reset overload state
+    overload_count_ = 0;
+    overload_cooldown_ = 0;
+    in_overload_ = false;
+
     status_ = EngineStatus::Running;
     return true;
 }
@@ -168,6 +174,9 @@ void Engine::shutdown()
     output_buffer_.clear();
     output_read_pos_ = 0;
     output_started_ = false;
+    overload_count_ = 0;
+    overload_cooldown_ = 0;
+    in_overload_ = false;
     status_ = EngineStatus::Stopped;
 }
 
@@ -179,6 +188,27 @@ void Engine::process_mono_chunk()
     bool use_deepfilter = (mode_ != NoiseMode::CpuSaver)
                           && deepfilter_
                           && deepfilter_->is_loaded();
+
+    // --- Overload handling: passthrough if inference is consistently too slow ---
+    if (in_overload_) {
+        if (overload_cooldown_ > 0) {
+            --overload_cooldown_;
+            // Passthrough: copy input directly to output
+            for (uint32_t j = 0; j < DENOISE_FRAME_SIZE; ++j) {
+                output_buffer_.push_back(input_buffer_[j]);
+            }
+            input_buffer_.erase(input_buffer_.begin(),
+                                input_buffer_.begin() + DENOISE_FRAME_SIZE);
+            return;
+        }
+        // Cooldown expired — try inference again
+        fprintf(stderr, "[NoiseAI-Engine] Overload cooldown expired, resuming inference\n");
+        in_overload_ = false;
+        overload_count_ = 0;
+    }
+
+    // --- Time the inference ---
+    auto t_start = std::chrono::steady_clock::now();
 
     if (use_deepfilter) {
         // DeepFilterNet: input is raw float [-1, 1]
@@ -254,6 +284,25 @@ void Engine::process_mono_chunk()
         for (uint32_t j = 0; j < DENOISE_FRAME_SIZE; ++j) {
             output_buffer_.push_back(rnn_output[j] / 32768.0f);
         }
+    }
+
+    // --- Measure elapsed time and update overload state ---
+    auto t_elapsed = std::chrono::steady_clock::now() - t_start;
+    float elapsed_ms = std::chrono::duration<float, std::milli>(t_elapsed).count();
+
+    if (elapsed_ms > OVERLOAD_THRESHOLD_MS) {
+        ++overload_count_;
+        if (overload_count_ >= OVERLOAD_TRIGGER_COUNT) {
+            in_overload_ = true;
+            overload_cooldown_ = OVERLOAD_COOLDOWN_FRAMES;
+            fprintf(stderr, "[NoiseAI-Engine] WARNING: Overload detected "
+                    "(%u consecutive slow frames, last=%.1fms). "
+                    "Falling back to passthrough for %u frames.\n",
+                    overload_count_, elapsed_ms, OVERLOAD_COOLDOWN_FRAMES);
+        }
+    } else {
+        // Reset on any fast frame — must be consecutive to trigger
+        overload_count_ = 0;
     }
 
     // Remove processed samples from input buffer
@@ -355,6 +404,11 @@ NoiseMode Engine::get_mode() const
 EngineStatus Engine::get_status() const
 {
     return status_;
+}
+
+bool Engine::is_overloaded() const
+{
+    return in_overload_;
 }
 
 void Engine::set_dry_mix(float mix)

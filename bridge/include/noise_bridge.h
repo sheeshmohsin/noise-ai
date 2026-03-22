@@ -30,6 +30,9 @@ float noise_engine_get_attenuation_limit(NoiseEngineHandle handle);
 // num_frames: number of frames (each frame = 2 samples for stereo)
 int noise_engine_process_and_write(NoiseEngineHandle handle, const float* input, uint32_t num_frames);
 
+// Returns 1 if the engine is in overload passthrough mode, 0 otherwise.
+int noise_engine_is_overloaded(NoiseEngineHandle handle);
+
 // Shared memory ring buffer for IPC between app and driver
 int noise_shm_create(NoiseEngineHandle handle, uint32_t sample_rate, uint32_t channels);
 void noise_shm_destroy(NoiseEngineHandle handle);

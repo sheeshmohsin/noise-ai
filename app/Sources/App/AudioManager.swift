@@ -23,8 +23,21 @@ final class CaptureContext {
     }
 }
 
-// AUHAL input callback - called on the real-time audio thread.
+// AUHAL input callback — called on CoreAudio's real-time audio thread.
 // Must be real-time safe: no allocations, no locks, no ObjC.
+//
+// Audio Workgroup / P-core scheduling (Apple Silicon):
+// This callback runs on the audio device's I/O thread, which CoreAudio
+// automatically places in the device's os_workgroup. Because we call
+// noise_engine_process_and_write() synchronously here (no separate
+// inference thread), our processing inherits the workgroup membership
+// and is scheduled on Performance cores by the OS.
+//
+// TODO: If processing is ever moved to a separate thread (e.g., for
+// async inference), that thread must explicitly join the audio device's
+// workgroup via os_workgroup_join() to retain P-core scheduling.
+// Retrieve the workgroup from the audio device using
+// kAudioDevicePropertyIOThreadOSWorkgroup and pass it to the worker.
 private func auhalInputCallback(
     inRefCon: UnsafeMutableRawPointer,
     ioActionFlags: UnsafeMutablePointer<AudioUnitRenderActionFlags>,

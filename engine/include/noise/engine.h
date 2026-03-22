@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
+#include <chrono>
 
 namespace noise {
 
@@ -25,6 +26,9 @@ public:
     NoiseMode get_mode() const;
 
     EngineStatus get_status() const;
+
+    /// Returns true if the engine is in overload passthrough mode.
+    bool is_overloaded() const;
 
     /// Override the dry mix ratio. Set to -1.0 to reset to mode default.
     void set_dry_mix(float mix);
@@ -73,6 +77,14 @@ private:
     bool output_started_ = false;
     // Debug: count of frames processed (for periodic logging)
     uint32_t debug_frame_count_ = 0;
+
+    // Overload detection: fallback to passthrough if inference is too slow
+    uint32_t overload_count_ = 0;
+    uint32_t overload_cooldown_ = 0;
+    bool in_overload_ = false;
+    static constexpr float OVERLOAD_THRESHOLD_MS = 8.0f;
+    static constexpr uint32_t OVERLOAD_TRIGGER_COUNT = 5;
+    static constexpr uint32_t OVERLOAD_COOLDOWN_FRAMES = 100;
 };
 
 } // namespace noise

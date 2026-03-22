@@ -110,6 +110,13 @@ float noise_engine_get_attenuation_limit(NoiseEngineHandle handle)
     return ctx->engine.get_attenuation_limit();
 }
 
+int noise_engine_is_overloaded(NoiseEngineHandle handle)
+{
+    if (!handle) return 0;
+    auto* ctx = static_cast<NoiseEngineContext*>(handle);
+    return ctx->engine.is_overloaded() ? 1 : 0;
+}
+
 int noise_engine_process_and_write(NoiseEngineHandle handle, const float* input, uint32_t num_frames)
 {
     if (!handle) return 0;
