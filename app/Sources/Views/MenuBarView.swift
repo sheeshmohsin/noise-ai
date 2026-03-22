@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct MenuBarView: View {
-    @State private var audioManager = AudioManager()
+    @Bindable var audioManager: AudioManager
+    var deviceManager: DeviceManager
     @State private var wantsProcessing = false
 
     var body: some View {
@@ -14,9 +15,14 @@ struct MenuBarView: View {
                 Text("NoiseAI")
                     .font(.headline)
                 Spacer()
-                Text(audioManager.isProcessing ? "Active" : "Off")
-                    .font(.caption)
-                    .foregroundStyle(audioManager.isProcessing ? .green : .secondary)
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(audioManager.isProcessing ? .green : .gray)
+                        .frame(width: 8, height: 8)
+                    Text(audioManager.isProcessing ? "Active" : "Off")
+                        .font(.caption)
+                        .foregroundStyle(audioManager.isProcessing ? .green : .secondary)
+                }
             }
 
             Divider()
@@ -26,10 +32,14 @@ struct MenuBarView: View {
                 .toggleStyle(.switch)
                 .onChange(of: wantsProcessing) { _, newValue in
                     if newValue {
-                        audioManager.start()
+                        // Start with the selected device
+                        let deviceID = deviceManager.selectedDeviceID()
+                        audioManager.start(withDeviceID: deviceID)
                     } else {
                         audioManager.stop()
                     }
+                    // Update status bar icon
+                    updateStatusBarIcon(active: newValue)
                 }
 
             // Mode picker
@@ -45,24 +55,48 @@ struct MenuBarView: View {
                 .pickerStyle(.segmented)
                 .onChange(of: audioManager.currentMode) { _, newValue in
                     audioManager.setMode(newValue)
+                    // Persist as default mode
+                    UserDefaults.standard.set(newValue.rawValue, forKey: "defaultMode")
                 }
             }
 
-            // Device selection placeholder
+            // Device selection
             VStack(alignment: .leading, spacing: 8) {
                 Text("Microphone")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                HStack {
-                    Image(systemName: "mic")
-                    Text("Built-in Microphone")
-                    Spacer()
-                    Image(systemName: "chevron.up.chevron.down")
-                        .foregroundStyle(.secondary)
+
+                if deviceManager.inputDevices.isEmpty {
+                    HStack {
+                        Image(systemName: "mic.slash")
+                            .foregroundStyle(.secondary)
+                        Text("No input devices found")
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.quaternary)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                } else {
+                    Picker("Microphone", selection: Binding(
+                        get: { deviceManager.selectedDeviceUID ?? "" },
+                        set: { newUID in
+                            deviceManager.selectDevice(uid: newUID)
+                        }
+                    )) {
+                        ForEach(deviceManager.inputDevices) { device in
+                            HStack {
+                                Text(device.name)
+                                if device.isDefault {
+                                    Text("(Default)")
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .tag(device.uid)
+                        }
+                    }
+                    .labelsHidden()
                 }
-                .padding(8)
-                .background(.quaternary)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
             }
 
             Divider()
@@ -87,8 +121,10 @@ struct MenuBarView: View {
         .padding(16)
         .frame(width: 300)
     }
-}
 
-#Preview {
-    MenuBarView()
+    private func updateStatusBarIcon(active: Bool) {
+        if let appDelegate = NSApp.delegate as? AppDelegate {
+            appDelegate.updateStatusIcon(isActive: active)
+        }
+    }
 }

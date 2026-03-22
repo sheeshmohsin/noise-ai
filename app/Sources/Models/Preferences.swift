@@ -14,4 +14,9 @@ class Preferences {
         get { defaults.string(forKey: "defaultMode") ?? "Balanced" }
         set { defaults.set(newValue, forKey: "defaultMode") }
     }
+
+    var selectedDeviceUID: String? {
+        get { defaults.string(forKey: "selectedDeviceUID") }
+        set { defaults.set(newValue, forKey: "selectedDeviceUID") }
+    }
 }

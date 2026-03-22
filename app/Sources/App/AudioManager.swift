@@ -112,6 +112,9 @@ class AudioManager {
     var currentMode: NoiseMode = .balanced
     var engineStatus: EngineStatus = .stopped
 
+    /// The AudioObjectID of the device currently being captured, or nil if using system default
+    private(set) var currentDeviceID: AudioObjectID?
+
     private var engineHandle: NoiseEngineHandle?
     private var captureContext: CaptureContext?
     // Strong reference to keep the context alive for the callback
@@ -140,6 +143,10 @@ class AudioManager {
     }
 
     func start() {
+        start(withDeviceID: currentDeviceID)
+    }
+
+    func start(withDeviceID deviceID: AudioObjectID?) {
         guard let handle = engineHandle else {
             isProcessing = false
             return
@@ -159,7 +166,8 @@ class AudioManager {
         noise_engine_start(handle)
 
         // Set up AUHAL for microphone capture
-        setupAudioUnit()
+        currentDeviceID = deviceID
+        setupAudioUnit(deviceID: deviceID)
 
         isProcessing = true
         engineStatus = .running
@@ -187,6 +195,15 @@ class AudioManager {
         engineStatus = .stopped
     }
 
+    /// Switch to a different input device. If currently processing, restarts capture.
+    func switchDevice(to deviceID: AudioObjectID?) {
+        currentDeviceID = deviceID
+        if isProcessing {
+            stop()
+            start(withDeviceID: deviceID)
+        }
+    }
+
     func setMode(_ mode: NoiseMode) {
         currentMode = mode
         guard let handle = engineHandle else { return }
@@ -200,7 +217,7 @@ class AudioManager {
 
     // MARK: - AUHAL Setup
 
-    private func setupAudioUnit() {
+    private func setupAudioUnit(deviceID: AudioObjectID?) {
         // Find the AUHAL audio component
         var desc = AudioComponentDescription(
             componentType: kAudioUnitType_Output,
@@ -248,16 +265,21 @@ class AudioManager {
             print("[NoiseAI] Failed to disable output: \(status)")
         }
 
-        // Find a physical (non-NoiseAI) input device
-        let inputDeviceID = findPhysicalInputDevice()
+        // Determine which device to use
+        let inputDeviceID: AudioObjectID
+        if let explicit = deviceID {
+            inputDeviceID = explicit
+        } else {
+            inputDeviceID = findPhysicalInputDevice()
+        }
 
         // Set the input device
-        var deviceID = inputDeviceID
+        var devID = inputDeviceID
         status = AudioUnitSetProperty(audioUnit,
             kAudioOutputUnitProperty_CurrentDevice,
             kAudioUnitScope_Global,
             0,
-            &deviceID,
+            &devID,
             UInt32(MemoryLayout<AudioObjectID>.size))
         if status != noErr {
             print("[NoiseAI] Failed to set input device: \(status)")
