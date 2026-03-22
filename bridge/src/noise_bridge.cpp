@@ -82,6 +82,34 @@ int noise_engine_get_status(NoiseEngineHandle handle)
     return static_cast<int>(ctx->engine.get_status());
 }
 
+void noise_engine_set_dry_mix(NoiseEngineHandle handle, float mix)
+{
+    if (!handle) return;
+    auto* ctx = static_cast<NoiseEngineContext*>(handle);
+    ctx->engine.set_dry_mix(mix);
+}
+
+float noise_engine_get_dry_mix(NoiseEngineHandle handle)
+{
+    if (!handle) return 0.0f;
+    auto* ctx = static_cast<NoiseEngineContext*>(handle);
+    return ctx->engine.get_dry_mix();
+}
+
+void noise_engine_set_attenuation_limit(NoiseEngineHandle handle, float db)
+{
+    if (!handle) return;
+    auto* ctx = static_cast<NoiseEngineContext*>(handle);
+    ctx->engine.set_attenuation_limit(db);
+}
+
+float noise_engine_get_attenuation_limit(NoiseEngineHandle handle)
+{
+    if (!handle) return 0.0f;
+    auto* ctx = static_cast<NoiseEngineContext*>(handle);
+    return ctx->engine.get_attenuation_limit();
+}
+
 int noise_engine_process_and_write(NoiseEngineHandle handle, const float* input, uint32_t num_frames)
 {
     if (!handle) return 0;

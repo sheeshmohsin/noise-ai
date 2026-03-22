@@ -222,16 +222,16 @@ Physical Mic (48kHz)
 ### Milestone 4: ML Inference Pipeline
 **Goal:** Noise cancellation works in real-time
 
-- [ ] Integrate ONNX Runtime (prebuilt, CPU EP, static link)
-- [ ] Implement model loader (`inference.cpp`) — load `.onnx` files, create session
-- [ ] Implement resampler (48kHz → 16kHz → 48kHz) using Accelerate.framework vDSP
-- [ ] Implement STFT/ISTFT using Accelerate.framework vDSP FFT
-- [ ] Integrate RNNoise ONNX model — frame processing, ratio mask application
-- [ ] Integrate DeepFilterNet2 ONNX model
-- [ ] Implement mode switching: CPU Saver (RNNoise) / Balanced (DeepFilterNet2) / Max Quality (DeepFilterNet2 + post-processing)
+- [x] Integrate ONNX Runtime (prebuilt, CPU EP, dynamic link with bundled dylib)
+- [x] Integrate RNNoise as native C library — CPU Saver mode (~60K params)
+- [x] Integrate DeepFilterNet3 via ONNX Runtime — Balanced/Max Quality mode (~2M params, single combined model)
+- [x] Implement mode switching: CPU Saver (RNNoise) / Balanced (DeepFilterNet3) / Max Quality (DeepFilterNet3)
+- [x] Implement dry/wet mix post-processing for voice preservation (configurable per mode)
+- [x] Expose dry_mix and attenuation_limit as configurable parameters via bridge API
+- [x] Handle stereo↔mono conversion, int16 scaling (RNNoise), frame buffering (480-sample chunks)
 - [ ] Add processing thread joined to audio workgroup (`os_workgroup_join`)
 - [ ] Implement overload handling: detect if inference takes too long, fallback to passthrough
-- [ ] Verify: background noise is removed, voice sounds natural, latency is imperceptible
+- [x] Verify: background noise is removed, voice sounds natural, latency is imperceptible
 
 ### Milestone 5: macOS App UI
 **Goal:** Polished menubar app with full user controls

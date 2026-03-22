@@ -42,6 +42,9 @@ compile_commands.json
 debug-logs.txt
 *.log
 
+# ML models (large binary files, downloaded separately)
+models/*.onnx
+
 # Claude
 .claude/
 

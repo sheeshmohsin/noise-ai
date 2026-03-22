@@ -1,5 +1,8 @@
+find_package(ONNXRuntime REQUIRED)
+
 add_library(noiseengine STATIC
     src/engine.cpp
+    src/deepfilter.cpp
     src/ring_buffer.cpp
     src/shared_ring_buffer.cpp
     src/inference.cpp
@@ -14,7 +17,7 @@ target_include_directories(noiseengine
 )
 
 target_link_libraries(noiseengine
-    PUBLIC rnnoise
+    PUBLIC rnnoise onnxruntime::onnxruntime
 )
 
 noise_set_compile_options(noiseengine)

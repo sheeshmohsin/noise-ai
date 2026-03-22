@@ -18,10 +18,12 @@ settings:
       - "$(PROJECT_DIR)/../build/bridge"
       - "$(PROJECT_DIR)/../build/engine"
       - "$(PROJECT_DIR)/../build/third_party"
+      - "$(PROJECT_DIR)/../third_party/onnxruntime/onnxruntime-osx-arm64-1.24.3/lib"
     OTHER_LDFLAGS:
       - "-lnoisebridge"
       - "-lnoiseengine"
       - "-lrnnoise"
+      - "-lonnxruntime"
       - "-lc++"
 
 targets:
@@ -38,8 +40,10 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.noiseai.app
         PRODUCT_NAME: NoiseAI
-        LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks"
+        LD_RUNPATH_SEARCH_PATHS:
+          - "@executable_path/../Frameworks"
         ENABLE_HARDENED_RUNTIME: true
+        CODE_SIGN_ENTITLEMENTS: NoiseAI.entitlements
     info:
       path: Sources/App/Info.plist
       properties:

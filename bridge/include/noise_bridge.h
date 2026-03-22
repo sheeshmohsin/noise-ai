@@ -17,6 +17,14 @@ void noise_engine_set_mode(NoiseEngineHandle handle, int mode);  // 0=CpuSaver, 
 int noise_engine_get_mode(NoiseEngineHandle handle);
 int noise_engine_get_status(NoiseEngineHandle handle);  // 0=Stopped, 1=Running, 2=Error
 
+// Dry mix override: set to -1.0 to reset to mode default
+void noise_engine_set_dry_mix(NoiseEngineHandle handle, float mix);
+float noise_engine_get_dry_mix(NoiseEngineHandle handle);
+
+// Attenuation limit override in dB: set to -1.0 to reset to mode default
+void noise_engine_set_attenuation_limit(NoiseEngineHandle handle, float db);
+float noise_engine_get_attenuation_limit(NoiseEngineHandle handle);
+
 // Process audio through RNNoise and write denoised output to shared memory.
 // input: interleaved stereo float32 audio
 // num_frames: number of frames (each frame = 2 samples for stereo)
